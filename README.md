@@ -1,2 +1,3 @@
-# where-to-watch
-A website that tells you where you can watch movies. 
+# Where to Watch
+
+Portfolio app that shows streaming availability via TMDB watch providers.
