@@ -4,9 +4,11 @@ import { apiConfig } from "../api";
 export default function RegionSelect() {
   const [regions, setRegions] = useState<string[]>(["GB"]);
   const [value, setValue] = useState<string>(
-    localStorage.getItem("region") ||
+    (
+      localStorage.getItem("region") ||
       import.meta.env.VITE_DEFAULT_REGION ||
       "GB"
+    ).toUpperCase()
   );
 
   useEffect(() => {
