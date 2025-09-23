@@ -7,26 +7,23 @@ import App from "./App";
 import Home from "./pages/Home";
 import Movie from "./pages/Movie";
 
-
 const router = createBrowserRouter([
-{
-path: "/",
-element: <App />,
-children: [
-{ index: true, element: <Home /> },
-{ path: "movie/:id", element: <Movie /> },
-],
-},
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: "movie/:id", element: <Movie /> },
+    ],
+  },
 ]);
-
 
 const qc = new QueryClient();
 
-
 ReactDOM.createRoot(document.getElementById("root")!).render(
-<React.StrictMode>
-<QueryClientProvider client={qc}>
-<RouterProvider router={router} />
-</QueryClientProvider>
-</React.StrictMode>
+  <React.StrictMode>
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  </React.StrictMode>
 );
