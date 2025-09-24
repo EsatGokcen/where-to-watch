@@ -97,3 +97,60 @@ export async function mapProviders(providersResp: any, region: string) {
     buy,
   };
 }
+
+export async function mapSearchResultAny(r: any) {
+  const mediaType =
+    r.media_type === "tv" || r.media_type === "movie"
+      ? r.media_type
+      : r.name
+      ? "tv"
+      : "movie";
+  const title =
+    mediaType === "tv"
+      ? r.name ?? r.original_name
+      : r.title ?? r.original_title;
+  const date = mediaType === "tv" ? r.first_air_date : r.release_date;
+  return {
+    id: r.id,
+    mediaType, // <-- NEW
+    title,
+    year: yearFrom(date),
+    posterUrl: await imageUrl(r.poster_path, "poster"),
+    backdropUrl: await imageUrl(r.backdrop_path, "backdrop"),
+    tmdbRating: r.vote_average ?? null,
+  };
+}
+
+export async function mapTVDetails(d: any) {
+  const runtime =
+    Array.isArray(d.episode_run_time) && d.episode_run_time.length
+      ? d.episode_run_time[0]
+      : null;
+  return {
+    id: d.id,
+    title: d.name ?? d.original_name,
+    year: yearFrom(d.first_air_date),
+    runtime,
+    overview: d.overview ?? "",
+    genres: Array.isArray(d.genres) ? d.genres.map((g: any) => g.name) : [],
+    posterUrl: await imageUrl(d.poster_path, "poster"),
+    backdropUrl: await imageUrl(d.backdrop_path, "backdrop"),
+    cast: Array.isArray(d.credits?.cast)
+      ? d.credits.cast
+          .slice(0, 8)
+          .map((c: any) => ({ name: c.name, role: c.character }))
+      : [],
+    crew: Array.isArray(d.credits?.crew)
+      ? d.credits.crew
+          .filter(
+            (c: any) =>
+              c.job === "Director" ||
+              c.job === "Series Director" ||
+              c.department === "Directing"
+          )
+          .slice(0, 3)
+          .map((c: any) => ({ name: c.name, job: c.job }))
+      : [],
+    tmdbRating: d.vote_average ?? null,
+  };
+}
