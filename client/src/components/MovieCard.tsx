@@ -9,7 +9,19 @@ export default function MovieCard({ m }: { m: SearchResult }) {
           <img
             src={m.posterUrl}
             alt={m.title}
+            loading="lazy"
             className="w-full aspect-[2/3] object-cover"
+            srcSet={
+              m.posterUrl
+                ? m.posterUrl.replace("/w342/", "/w185/") +
+                  " 185w, " +
+                  m.posterUrl.replace("/w342/", "/w342/") +
+                  " 342w, " +
+                  m.posterUrl.replace("/w342/", "/w500/") +
+                  " 500w"
+                : undefined
+            }
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
           />
         ) : (
           <div className="w-full aspect-[2/3] grid place-items-center text-slate-500">
