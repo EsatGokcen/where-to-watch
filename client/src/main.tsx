@@ -6,6 +6,7 @@ import "./index.css";
 import App from "./App";
 import Home from "./pages/Home";
 import Movie from "./pages/Movie";
+import Tv from "./pages/Tv";
 
 const router = createBrowserRouter([
   {
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "movie/:id", element: <Movie /> },
+      { path: "tv/:id", element: <Tv /> },
     ],
   },
 ]);
