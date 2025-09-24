@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { apiConfig } from "../api";
 
 type RegionOption = { code: string; label: string; emoji: string };
 
-/** Fallback: build a flag emoji from ISO2 (e.g. "GB" → 🇬🇧) */
 function codeToFlagEmoji(code: string) {
   const A = 0x1f1e6;
   return code
@@ -45,21 +45,30 @@ const EMOJIS: Record<string, string> = {
   JP: "🇯🇵",
 };
 
+const MENU_WIDTH = 224; // Tailwind w-56 in px
+const MENU_GAP = 8; // space between button and menu
+
 export default function RegionSelect() {
   const [regions, setRegions] = useState<string[]>(["GB"]);
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
 
-  const initial = (
-    localStorage.getItem("region") ||
-    import.meta.env.VITE_DEFAULT_REGION ||
-    "GB"
-  ).toUpperCase();
-
+  const initial = useMemo(
+    () =>
+      (
+        localStorage.getItem("region") ||
+        import.meta.env.VITE_DEFAULT_REGION ||
+        "GB"
+      ).toUpperCase(),
+    []
+  );
   const [value, setValue] = useState<string>(initial);
 
-  // Load supported regions from backend
+  // Load supported regions
   useEffect(() => {
     apiConfig().then((cfg) => {
       if (Array.isArray(cfg.supportedRegions) && cfg.supportedRegions.length) {
@@ -73,28 +82,42 @@ export default function RegionSelect() {
     localStorage.setItem("region", value.toUpperCase());
   }, [value]);
 
-  // Close on outside click / ESC
+  // Compute fixed position for the portal menu (align right edge to button)
+  function updatePosition() {
+    const el = triggerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const left = Math.round(rect.right - MENU_WIDTH + window.scrollX);
+    const top = Math.round(rect.bottom + MENU_GAP + window.scrollY);
+    setPos({ top, left });
+  }
+
+  // Open/close behaviors: outside click, Esc, resize/scroll reposition
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!open) return;
+    if (!open) return;
+
+    updatePosition();
+
+    const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(t) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(t)
-      ) {
-        setOpen(false);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
+      if (!triggerRef.current) return;
+      if (triggerRef.current.contains(t)) return;
+      // Clicked outside the trigger and the menu (menu is a portal so just close)
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onReflow = () => updatePosition();
+
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
+
     return () => {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
     };
   }, [open]);
 
@@ -149,71 +172,72 @@ export default function RegionSelect() {
         </svg>
       </button>
 
-      {/* Popover */}
-      <div
-        ref={popoverRef}
-        role="menu"
-        className={`
-          absolute right-0 mt-2 w-56 origin-top-right
-          rounded-xl border border-slate-700/70 bg-slate-900/95 backdrop-blur
-          shadow-xl ring-1 ring-black/5
-          transition ease-out duration-150
-          ${
-            open
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-95 pointer-events-none"
-          }
-        `}
-      >
-        <ul className="py-2">
-          {options.map((o) => {
-            const selected = o.code === current.code;
-            return (
-              <li key={o.code}>
-                <button
-                  role="menuitemradio"
-                  aria-checked={selected}
-                  onClick={() => {
-                    setValue(o.code);
-                    setOpen(false);
-                  }}
-                  className={`
-                    w-full px-3 py-2.5 text-left text-sm flex items-center gap-3
-                    hover:bg-slate-800/70
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60
-                    transition
-                    ${selected ? "bg-slate-800/60" : ""}
-                  `}
-                >
-                  <span className="text-lg">{o.emoji}</span>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-200">{o.code}</div>
-                    <div className="text-xs text-slate-400">{o.label}</div>
-                  </div>
-                  {selected ? (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      className="text-sky-400"
-                      aria-hidden
+      {/* Portal menu (fixed, high z-index) */}
+      {open &&
+        createPortal(
+          <div
+            role="menu"
+            style={{ top: pos.top, left: pos.left, width: MENU_WIDTH }}
+            className="
+              fixed z-[9999] origin-top-right
+              rounded-xl border border-slate-700/70 bg-slate-900/95 backdrop-blur
+              shadow-xl ring-1 ring-black/5
+              opacity-100 scale-100
+            "
+          >
+            <ul className="py-2">
+              {options.map((o) => {
+                const selected = o.code === current.code;
+                return (
+                  <li key={o.code}>
+                    <button
+                      role="menuitemradio"
+                      aria-checked={selected}
+                      onClick={() => {
+                        setValue(o.code);
+                        setOpen(false);
+                      }}
+                      className={`
+                        w-full px-3 py-2.5 text-left text-sm flex items-center gap-3
+                        hover:bg-slate-800/70
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60
+                        transition
+                        ${selected ? "bg-slate-800/60" : ""}
+                      `}
                     >
-                      <path
-                        d="M20 6L9 17l-5-5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                      <span className="text-lg">{o.emoji}</span>
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-200">
+                          {o.code}
+                        </div>
+                        <div className="text-xs text-slate-400">{o.label}</div>
+                      </div>
+                      {selected ? (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          className="text-sky-400"
+                          aria-hidden
+                        >
+                          <path
+                            d="M20 6L9 17l-5-5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
