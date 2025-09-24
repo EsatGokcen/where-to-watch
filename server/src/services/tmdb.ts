@@ -50,3 +50,32 @@ export async function getWatchProviders(id: string | number) {
   const { data } = await tmdb.get(`/movie/${id}/watch/providers`);
   return data;
 }
+
+export async function searchMulti(query: string, region?: string) {
+  const { data } = await tmdb.get("/search/multi", {
+    params: { query, include_adult: false, region },
+  });
+  return data;
+}
+
+export async function searchTV(query: string, region?: string) {
+  const { data } = await tmdb.get("/search/tv", {
+    params: { query, include_adult: false, region },
+  });
+  return data;
+}
+
+export async function getTVDetails(id: string | number) {
+  const { data } = await tmdb.get(`/tv/${id}`, {
+    params: {
+      append_to_response: "credits,images",
+      include_image_language: "en,null",
+    },
+  });
+  return data;
+}
+
+export async function getTVWatchProviders(id: string | number) {
+  const { data } = await tmdb.get(`/tv/${id}/watch/providers`);
+  return data;
+}
