@@ -11,6 +11,10 @@ const EnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
+  SAFE_SEARCH_STRICT: z
+    .string()
+    .optional()
+    .transform((v) => String(v ?? "true").toLowerCase() !== "false"),
 });
 
 export const env = EnvSchema.parse(process.env);
