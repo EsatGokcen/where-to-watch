@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiConfig } from "../api";
+import { useRegion } from "../region";
 
 type RegionOption = { code: string; label: string; emoji: string };
 
@@ -45,10 +46,11 @@ const EMOJIS: Record<string, string> = {
   JP: "🇯🇵",
 };
 
-const MENU_WIDTH = 224; // Tailwind w-56 in px
-const MENU_GAP = 8; // space between button and menu
+const MENU_WIDTH = 224; // Tailwind w-56
+const MENU_GAP = 8;
 
 export default function RegionSelect() {
+  const { region, setRegion } = useRegion(); // <-- global region state
   const [regions, setRegions] = useState<string[]>(["GB"]);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number }>({
@@ -57,18 +59,7 @@ export default function RegionSelect() {
   });
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const initial = useMemo(
-    () =>
-      (
-        localStorage.getItem("region") ||
-        import.meta.env.VITE_DEFAULT_REGION ||
-        "GB"
-      ).toUpperCase(),
-    []
-  );
-  const [value, setValue] = useState<string>(initial);
-
-  // Load supported regions
+  // Load supported regions from backend
   useEffect(() => {
     apiConfig().then((cfg) => {
       if (Array.isArray(cfg.supportedRegions) && cfg.supportedRegions.length) {
@@ -76,11 +67,6 @@ export default function RegionSelect() {
       }
     });
   }, []);
-
-  // Persist
-  useEffect(() => {
-    localStorage.setItem("region", value.toUpperCase());
-  }, [value]);
 
   // Compute fixed position for the portal menu (align right edge to button)
   function updatePosition() {
@@ -95,14 +81,11 @@ export default function RegionSelect() {
   // Open/close behaviors: outside click, Esc, resize/scroll reposition
   useEffect(() => {
     if (!open) return;
-
     updatePosition();
 
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (!triggerRef.current) return;
-      if (triggerRef.current.contains(t)) return;
-      // Clicked outside the trigger and the menu (menu is a portal so just close)
+      if (triggerRef.current?.contains(t)) return;
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -127,10 +110,10 @@ export default function RegionSelect() {
     emoji: EMOJIS[code] || codeToFlagEmoji(code),
   }));
 
-  const current = options.find((o) => o.code === value.toUpperCase()) || {
-    code: value.toUpperCase(),
-    label: LABELS[value] || value.toUpperCase(),
-    emoji: EMOJIS[value] || codeToFlagEmoji(value),
+  const current = options.find((o) => o.code === region.toUpperCase()) || {
+    code: region.toUpperCase(),
+    label: LABELS[region] || region.toUpperCase(),
+    emoji: EMOJIS[region] || codeToFlagEmoji(region),
   };
 
   return (
@@ -194,7 +177,7 @@ export default function RegionSelect() {
                       role="menuitemradio"
                       aria-checked={selected}
                       onClick={() => {
-                        setValue(o.code);
+                        setRegion(o.code); // <-- update global region
                         setOpen(false);
                       }}
                       className={`

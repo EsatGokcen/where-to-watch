@@ -7,6 +7,7 @@ import App from "./App";
 import Home from "./pages/Home";
 import Movie from "./pages/Movie";
 import Tv from "./pages/Tv";
+import { RegionProvider } from "./region";
 
 const router = createBrowserRouter([
   {
@@ -25,7 +26,9 @@ const qc = new QueryClient();
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={qc}>
-      <RouterProvider router={router} />
+      <RegionProvider>
+        <RouterProvider router={router} />
+      </RegionProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );
