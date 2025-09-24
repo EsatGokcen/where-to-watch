@@ -50,25 +50,30 @@ const MENU_WIDTH = 224; // Tailwind w-56
 const MENU_GAP = 8;
 
 export default function RegionSelect() {
-  const { region, setRegion } = useRegion(); // <-- global region state
-  const [regions, setRegions] = useState<string[]>(["GB"]);
+  const { region, setRegion } = useRegion();
+  const [regions, setRegions] = useState<string[]>(["US", "GB", "TR"]);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number }>({
     top: 0,
     left: 0,
   });
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // Load supported regions from backend
+  // Load supported regions from backend (merge with defaults)
   useEffect(() => {
     apiConfig().then((cfg) => {
-      if (Array.isArray(cfg.supportedRegions) && cfg.supportedRegions.length) {
-        setRegions(cfg.supportedRegions.map((r: string) => r.toUpperCase()));
-      }
+      const srv = Array.isArray(cfg.supportedRegions)
+        ? cfg.supportedRegions
+        : [];
+      const merged = Array.from(
+        new Set([...regions, ...srv.map((r: string) => r.toUpperCase())])
+      ).sort();
+      setRegions(merged);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Compute fixed position for the portal menu (align right edge to button)
   function updatePosition() {
     const el = triggerRef.current;
     if (!el) return;
@@ -78,26 +83,29 @@ export default function RegionSelect() {
     setPos({ top, left });
   }
 
-  // Open/close behaviors: outside click, Esc, resize/scroll reposition
+  // Close on outside click, but ignore clicks inside the menu (portal)
   useEffect(() => {
     if (!open) return;
     updatePosition();
 
-    const onClick = (e: MouseEvent) => {
+    const onPointerDown = (e: Event) => {
       const t = e.target as Node;
-      if (triggerRef.current?.contains(t)) return;
+      if (triggerRef.current?.contains(t)) return; // click on trigger: let it toggle
+      if (menuRef.current?.contains(t)) return; // click inside menu: allow item handler
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     const onReflow = () => updatePosition();
 
-    document.addEventListener("mousedown", onClick);
+    document.addEventListener("mousedown", onPointerDown, true);
+    document.addEventListener("touchstart", onPointerDown, true);
     document.addEventListener("keydown", onKey);
     window.addEventListener("resize", onReflow);
     window.addEventListener("scroll", onReflow, true);
 
     return () => {
-      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("mousedown", onPointerDown, true);
+      document.removeEventListener("touchstart", onPointerDown, true);
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onReflow);
       window.removeEventListener("scroll", onReflow, true);
@@ -125,13 +133,7 @@ export default function RegionSelect() {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="
-          inline-flex items-center gap-2 rounded-xl
-          border border-slate-700/70 bg-slate-900/70
-          px-3 py-2 text-sm leading-none shadow-sm
-          hover:bg-slate-800/70 hover:border-slate-600
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60
-          transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl border border-slate-700/70 bg-slate-900/70 px-3 py-2 text-sm leading-none shadow-sm hover:bg-slate-800/70 hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 transition-colors"
       >
         <span className="text-lg">{current.emoji}</span>
         <span className="font-medium tracking-wide">{current.code}</span>
@@ -159,16 +161,12 @@ export default function RegionSelect() {
       {open &&
         createPortal(
           <div
+            ref={menuRef}
             role="menu"
             style={{ top: pos.top, left: pos.left, width: MENU_WIDTH }}
-            className="
-              fixed z-[9999] origin-top-right
-              rounded-xl border border-slate-700/70 bg-slate-900/95 backdrop-blur
-              shadow-xl ring-1 ring-black/5
-              opacity-100 scale-100
-            "
+            className="fixed z-[9999] origin-top-right rounded-xl border border-slate-700/70 bg-slate-900/95 backdrop-blur shadow-xl ring-1 ring-black/5"
           >
-            <ul className="py-2">
+            <ul className="py-2 max-h-[60vh] overflow-auto">
               {options.map((o) => {
                 const selected = o.code === current.code;
                 return (
@@ -177,16 +175,12 @@ export default function RegionSelect() {
                       role="menuitemradio"
                       aria-checked={selected}
                       onClick={() => {
-                        setRegion(o.code); // <-- update global region
+                        setRegion(o.code); // <-- will now fire before menu closes
                         setOpen(false);
                       }}
-                      className={`
-                        w-full px-3 py-2.5 text-left text-sm flex items-center gap-3
-                        hover:bg-slate-800/70
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60
-                        transition
-                        ${selected ? "bg-slate-800/60" : ""}
-                      `}
+                      className={`w-full px-3 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 transition ${
+                        selected ? "bg-slate-800/60" : ""
+                      }`}
                     >
                       <span className="text-lg">{o.emoji}</span>
                       <div className="flex-1">
