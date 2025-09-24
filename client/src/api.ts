@@ -10,7 +10,7 @@ export async function apiSearch(query: string, region = DEFAULT_REGION) {
   const { data } = await axios.get<{ results: SearchResult[] }>(
     `${API_BASE}/api/v1/search`,
     {
-      params: { query, region },
+      params: { query, region }, // backend defaults to multi + safe
     }
   );
   return data.results;
@@ -29,6 +29,21 @@ export async function apiProviders(id: number, region = DEFAULT_REGION) {
     region: string;
     availability: Providers;
   }>(`${API_BASE}/api/v1/movies/${id}/providers`, { params: { region } });
+  return data.availability;
+}
+
+/* --- TV endpoints --- */
+export async function apiTv(id: number) {
+  const { data } = await axios.get<MovieDetails>(`${API_BASE}/api/v1/tv/${id}`);
+  return data;
+}
+
+export async function apiTvProviders(id: number, region = DEFAULT_REGION) {
+  const { data } = await axios.get<{
+    id: number;
+    region: string;
+    availability: Providers;
+  }>(`${API_BASE}/api/v1/tv/${id}/providers`, { params: { region } });
   return data.availability;
 }
 

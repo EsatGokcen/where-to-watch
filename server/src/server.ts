@@ -9,6 +9,8 @@ import health from "./routes/health";
 import search from "./routes/search";
 import movies from "./routes/movies";
 import providers from "./routes/providers";
+import tv from "./routes/tv";
+import tvProviders from "./routes/tvProviders";
 import cfg from "./routes/config";
 import { errorHandler } from "./middleware/error";
 
@@ -41,7 +43,9 @@ export function createServer() {
   app.use("/health", health);
   app.use("/api/v1/search", search);
   app.use("/api/v1/movies", movies);
-  app.use("/api/v1/movies", providers); // providers route mounts under /:id/providers
+  app.use("/api/v1/movies", providers);
+  app.use("/api/v1/tv", tv);
+  app.use("/api/v1/tv", tvProviders);
   app.use("/api/v1/config", cfg);
 
   // central error handler

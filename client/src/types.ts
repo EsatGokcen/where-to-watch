@@ -1,5 +1,8 @@
+export type MediaType = "movie" | "tv";
+
 export type SearchResult = {
   id: number;
+  mediaType: MediaType; // <-- NEW
   title: string;
   year: number | null;
   posterUrl: string | null;
