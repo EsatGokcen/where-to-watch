@@ -1,21 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { apiMovie, apiProviders } from "../api";
 import ProviderGroup from "../components/ProviderGroup";
+import { useRegion } from "../region";
 
 export default function Movie() {
   const params = useParams();
   const id = Number(params.id);
-  const region = useMemo(() => localStorage.getItem("region") || "GB", []);
+  const { region } = useRegion();
 
   const detailsQ = useQuery({
     queryKey: ["movie", id],
     queryFn: () => apiMovie(id),
   });
+
   const providersQ = useQuery({
     queryKey: ["providers", id, region],
     queryFn: () => apiProviders(id, region),
+    enabled: Number.isFinite(id),
   });
 
   if (detailsQ.isLoading) return <div>Loading…</div>;
