@@ -79,3 +79,8 @@ export async function getTVWatchProviders(id: string | number) {
   const { data } = await tmdb.get(`/tv/${id}/watch/providers`);
   return data;
 }
+
+export async function getWatchProviderRegions() {
+  const { data } = await tmdb.get("/watch/providers/regions");
+  return data;
+}
