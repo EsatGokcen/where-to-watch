@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import Header from "./components/Header";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         This product uses the TMDB API but is not endorsed or certified by TMDB.
         Streaming availability data courtesy of JustWatch.
       </footer>
+      <SpeedInsights />
     </div>
   );
 }
